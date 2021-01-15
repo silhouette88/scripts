@@ -6,7 +6,7 @@ DB_USER=$2
 DB_IMPORT=$3
 DB_NAME=${4:-my_test}
 
-if [[ $# -lt 1 ]]; then
+if [[ $# -lt 3 ]]; then
   echo "Usage: $0 <db_host> <db_user> <import_file> <db_name>"
   echo
   echo "import_file: The pg_dump file you want to run pg_restore with"
