@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1a73e8" />
+  <title>Car Wash Tracker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue: #1a73e8;
+      --blue-dark: #1558b0;
+      --green: #34a853;
+      --red: #ea4335;
+      --orange: #fbbc04;
+      --bg: #f1f3f4;
+      --card: #ffffff;
+      --text: #202124;
+      --muted: #5f6368;
+      --border: #dadce0;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 24px;
+    }
+
+    header {
+      background: var(--blue);
+      color: white;
+      padding: 16px 20px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+
+    header h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: .3px; }
+
+    .session-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+      gap: 10px;
+    }
+
+    .session-timer {
+      font-size: 1.6rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 1px;
+    }
+
+    .session-controls { display: flex; gap: 8px; }
+
+    .btn {
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: .85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+      touch-action: manipulation;
+    }
+    .btn:active { transform: scale(.96); opacity: .85; }
+
+    .btn-white { background: white; color: var(--blue); }
+    .btn-outline { background: rgba(255,255,255,.2); color: white; border: 1px solid rgba(255,255,255,.5); }
+    .btn-danger { background: var(--red); color: white; }
+    .btn-green { background: var(--green); color: white; }
+    .btn-small { padding: 6px 10px; font-size: .78rem; }
+
+    .progress-bar-wrap {
+      margin-top: 10px;
+      background: rgba(255,255,255,.3);
+      border-radius: 4px;
+      height: 6px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: white;
+      border-radius: 4px;
+      transition: width .4s ease;
+    }
+    .progress-label { font-size: .75rem; margin-top: 4px; opacity: .9; }
+
+    .main { padding: 16px; max-width: 500px; margin: 0 auto; }
+
+    .section-title {
+      font-size: .75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--muted);
+      margin: 18px 0 8px;
+    }
+
+    .step-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      border: 2px solid transparent;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+      transition: border-color .2s, opacity .2s;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .step-card.active  { border-color: var(--blue); }
+    .step-card.done    { opacity: .65; }
+    .step-card.done .step-name { text-decoration: line-through; color: var(--muted); }
+
+    .step-check {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background .2s, border-color .2s;
+      margin-top: 2px;
+    }
+    .step-card.done .step-check { background: var(--green); border-color: var(--green); }
+    .step-check svg { display: none; }
+    .step-card.done .step-check svg { display: block; }
+
+    .step-body { flex: 1; min-width: 0; }
+
+    .step-name {
+      font-size: .95rem;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    .step-hint {
+      font-size: .78rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .step-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+      gap: 8px;
+    }
+
+    .step-timer-display {
+      font-size: 1.25rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: .5px;
+      color: var(--blue);
+      min-width: 52px;
+    }
+    .step-card.done .step-timer-display { color: var(--muted); }
+
+    .target-badge {
+      font-size: .72rem;
+      color: var(--muted);
+      background: var(--bg);
+      border-radius: 20px;
+      padding: 2px 8px;
+      font-weight: 500;
+    }
+    .target-badge.over { color: var(--red); background: #fce8e6; }
+
+    .step-actions { display: flex; gap: 6px; }
+
+    .btn-start  { background: var(--blue); color: white; }
+    .btn-pause  { background: var(--orange); color: #333; }
+    .btn-resume { background: var(--blue); color: white; }
+    .btn-reset  { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+
+    /* Edit steps panel */
+    .edit-panel {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+      display: none;
+    }
+    .edit-panel.open { display: block; }
+    .edit-panel h3 { font-size: .9rem; font-weight: 600; margin-bottom: 12px; }
+
+    .edit-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      padding: 8px;
+      background: var(--bg);
+      border-radius: 8px;
+    }
+    .edit-row input[type="text"] {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: .85rem;
+      background: white;
+    }
+    .edit-row input[type="number"] {
+      width: 62px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: .85rem;
+      background: white;
+    }
+    .edit-row label { font-size: .72rem; color: var(--muted); white-space: nowrap; }
+
+    .add-step-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .add-step-row input { flex: 1; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #303030;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 24px;
+      font-size: .85rem;
+      font-weight: 500;
+      z-index: 100;
+      transition: transform .3s ease;
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Car Wash Tracker</h1>
+  <div class="session-bar">
+    <div>
+      <div class="session-timer" id="sessionTimer">0:00:00</div>
+      <div class="progress-label" id="progressLabel">0 of 0 steps done</div>
+    </div>
+    <div class="session-controls">
+      <button class="btn btn-outline btn-small" id="editBtn" onclick="toggleEdit()">Edit Steps</button>
+      <button class="btn btn-white btn-small" id="sessionBtn" onclick="toggleSession()">Start</button>
+      <button class="btn btn-outline btn-small" onclick="resetAll()">Reset</button>
+    </div>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+  </div>
+</header>
+
+<div class="main">
+  <div class="edit-panel" id="editPanel">
+    <h3>Customize Steps</h3>
+    <div id="editRows"></div>
+    <div class="add-step-row">
+      <input type="text" id="newStepName" placeholder="New step name..." />
+      <input type="number" id="newStepTarget" placeholder="min" min="0" style="width:60px" />
+      <button class="btn btn-green btn-small" onclick="addStep()">+ Add</button>
+    </div>
+  </div>
+
+  <div class="section-title">Steps</div>
+  <div id="stepsList"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const DEFAULT_STEPS = [
+    { name: "Pre-rinse",            hint: "Hose down the whole car to loosen dirt",  target: 2 },
+    { name: "Apply soap / foam",    hint: "Cover all panels with soapy water",        target: 3 },
+    { name: "Wash body panels",     hint: "Scrub top to bottom with a wash mitt",     target: 6 },
+    { name: "Clean wheels & tires", hint: "Brush wheels, scrub tires",               target: 4 },
+    { name: "Rinse",                hint: "Thorough rinse, top to bottom",            target: 3 },
+    { name: "Dry",                  hint: "Microfibre towel, start at roof",          target: 5 },
+    { name: "Windows & mirrors",    hint: "Glass cleaner inside & out",              target: 3 },
+    { name: "Final inspection",     hint: "Check for missed spots",                  target: 2 },
+  ];
+
+  let steps = JSON.parse(localStorage.getItem("cwt_steps") || "null") || DEFAULT_STEPS.map(s => ({...s}));
+  let timers = steps.map(() => ({ elapsed: 0, running: false, interval: null, done: false }));
+
+  let sessionElapsed = 0;
+  let sessionRunning = false;
+  let sessionInterval = null;
+
+  function saveSteps() {
+    localStorage.setItem("cwt_steps", JSON.stringify(steps));
+  }
+
+  // ---- Render ----
+
+  function render() {
+    const list = document.getElementById("stepsList");
+    list.innerHTML = "";
+
+    steps.forEach((step, i) => {
+      const t = timers[i];
+      const card = document.createElement("div");
+      card.className = "step-card" + (t.running ? " active" : "") + (t.done ? " done" : "");
+      card.id = `card-${i}`;
+
+      const overTime = step.target > 0 && t.elapsed > step.target * 60;
+
+      card.innerHTML = `
+        <div class="step-check" onclick="toggleDone(${i})">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M2 7l4 4 6-7" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="step-body">
+          <div class="step-name">${escHtml(step.name)}</div>
+          ${step.hint ? `<div class="step-hint">${escHtml(step.hint)}</div>` : ""}
+          <div class="step-bottom">
+            <div>
+              <div class="step-timer-display" id="timer-${i}">${fmtTime(t.elapsed)}</div>
+              ${step.target > 0
+                ? `<div class="target-badge ${overTime ? "over" : ""}">${overTime ? "over " : "goal: "}${fmtTarget(step.target)}</div>`
+                : ""}
+            </div>
+            <div class="step-actions">
+              ${t.done
+                ? `<button class="btn btn-reset btn-small" onclick="resetStep(${i})">Reset</button>`
+                : t.running
+                  ? `<button class="btn btn-pause btn-small" onclick="pauseStep(${i})">Pause</button>
+                     <button class="btn btn-reset btn-small" onclick="resetStep(${i})">Reset</button>`
+                  : t.elapsed > 0
+                    ? `<button class="btn btn-resume btn-small" onclick="startStep(${i})">Resume</button>
+                       <button class="btn btn-reset btn-small" onclick="resetStep(${i})">Reset</button>`
+                    : `<button class="btn btn-start btn-small" onclick="startStep(${i})">Start</button>`}
+            </div>
+          </div>
+        </div>
+      `;
+      list.appendChild(card);
+    });
+
+    updateProgress();
+  }
+
+  function updateCard(i) {
+    const t = timers[i];
+    const step = steps[i];
+    const el = document.getElementById(`timer-${i}`);
+    if (el) el.textContent = fmtTime(t.elapsed);
+
+    const card = document.getElementById(`card-${i}`);
+    if (!card) return;
+
+    const overTime = step.target > 0 && t.elapsed > step.target * 60;
+    const badge = card.querySelector(".target-badge");
+    if (badge) {
+      badge.textContent = (overTime ? "over " : "goal: ") + fmtTarget(step.target);
+      badge.className = "target-badge" + (overTime ? " over" : "");
+    }
+  }
+
+  function updateProgress() {
+    const done = timers.filter(t => t.done).length;
+    const total = steps.length;
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    document.getElementById("progressBar").style.width = pct + "%";
+    document.getElementById("progressLabel").textContent = `${done} of ${total} steps done`;
+  }
+
+  // ---- Session ----
+
+  function toggleSession() {
+    if (sessionRunning) {
+      clearInterval(sessionInterval);
+      sessionRunning = false;
+      document.getElementById("sessionBtn").textContent = "Resume";
+    } else {
+      sessionRunning = true;
+      document.getElementById("sessionBtn").textContent = "Pause";
+      sessionInterval = setInterval(() => {
+        sessionElapsed++;
+        document.getElementById("sessionTimer").textContent = fmtTimeLong(sessionElapsed);
+      }, 1000);
+    }
+  }
+
+  function resetAll() {
+    if (!confirm("Reset all timers and progress?")) return;
+    clearInterval(sessionInterval);
+    sessionElapsed = 0; sessionRunning = false;
+    document.getElementById("sessionTimer").textContent = "0:00:00";
+    document.getElementById("sessionBtn").textContent = "Start";
+
+    timers.forEach((t, i) => {
+      clearInterval(t.interval);
+      timers[i] = { elapsed: 0, running: false, interval: null, done: false };
+    });
+    render();
+  }
+
+  // ---- Step controls ----
+
+  function startStep(i) {
+    if (!sessionRunning) {
+      toggleSession();
+    }
+    const t = timers[i];
+    if (t.running || t.done) return;
+    t.running = true;
+    t.interval = setInterval(() => {
+      t.elapsed++;
+      updateCard(i);
+    }, 1000);
+    refreshCard(i);
+  }
+
+  function pauseStep(i) {
+    const t = timers[i];
+    clearInterval(t.interval);
+    t.running = false;
+    refreshCard(i);
+  }
+
+  function resetStep(i) {
+    const t = timers[i];
+    clearInterval(t.interval);
+    timers[i] = { elapsed: 0, running: false, interval: null, done: false };
+    refreshCard(i);
+  }
+
+  function toggleDone(i) {
+    const t = timers[i];
+    if (!t.done) {
+      clearInterval(t.interval);
+      t.running = false;
+      t.done = true;
+      if (timers.every(x => x.done) && sessionRunning) {
+        toggleSession();
+        showToast("All steps done! Total: " + fmtTimeLong(sessionElapsed));
+      }
+    } else {
+      t.done = false;
+    }
+    refreshCard(i);
+    updateProgress();
+  }
+
+  function refreshCard(i) {
+    // Re-render just this card efficiently by re-rendering all (list is small)
+    render();
+  }
+
+  // ---- Edit panel ----
+
+  function toggleEdit() {
+    const p = document.getElementById("editPanel");
+    const open = p.classList.toggle("open");
+    document.getElementById("editBtn").textContent = open ? "Done Editing" : "Edit Steps";
+    if (open) renderEditRows();
+  }
+
+  function renderEditRows() {
+    const container = document.getElementById("editRows");
+    container.innerHTML = "";
+    steps.forEach((step, i) => {
+      const row = document.createElement("div");
+      row.className = "edit-row";
+      row.innerHTML = `
+        <input type="text" value="${escHtml(step.name)}" onchange="updateStepName(${i}, this.value)" />
+        <label>Goal<br/>(min)
+          <input type="number" min="0" value="${step.target}" onchange="updateStepTarget(${i}, this.value)" />
+        </label>
+        <button class="btn btn-danger btn-small" onclick="removeStep(${i})">✕</button>
+      `;
+      container.appendChild(row);
+    });
+  }
+
+  function updateStepName(i, val) {
+    steps[i].name = val.trim() || steps[i].name;
+    saveSteps(); render();
+  }
+
+  function updateStepTarget(i, val) {
+    steps[i].target = Math.max(0, parseInt(val) || 0);
+    saveSteps(); render();
+  }
+
+  function removeStep(i) {
+    clearInterval(timers[i].interval);
+    steps.splice(i, 1);
+    timers.splice(i, 1);
+    saveSteps(); renderEditRows(); render();
+  }
+
+  function addStep() {
+    const nameEl = document.getElementById("newStepName");
+    const targetEl = document.getElementById("newStepTarget");
+    const name = nameEl.value.trim();
+    if (!name) { showToast("Enter a step name"); return; }
+    steps.push({ name, hint: "", target: parseInt(targetEl.value) || 0 });
+    timers.push({ elapsed: 0, running: false, interval: null, done: false });
+    nameEl.value = ""; targetEl.value = "";
+    saveSteps(); renderEditRows(); render();
+  }
+
+  // ---- Utils ----
+
+  function fmtTime(s) {
+    const m = Math.floor(s / 60), sec = s % 60;
+    return `${m}:${String(sec).padStart(2, "0")}`;
+  }
+
+  function fmtTimeLong(s) {
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    return `${h}:${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
+  }
+
+  function fmtTarget(min) {
+    return min >= 60 ? `${Math.floor(min/60)}h ${min%60}m` : `${min}m`;
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 3500);
+  }
+
+  // ---- Init ----
+  render();
+</script>
+</body>
+</html>
